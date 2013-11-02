@@ -1210,8 +1210,7 @@ static void handle_deauth(struct hostapd_data *hapd,
 		return;
 	}
 
-	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC |
-			WLAN_STA_ASSOC_REQ_OK);
+	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK);
 	wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED MACSTR,
 		MAC2STR(sta->addr));
 	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);

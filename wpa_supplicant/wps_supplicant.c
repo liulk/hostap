@@ -1136,7 +1136,7 @@ int wpas_wps_init(struct wpa_supplicant *wpa_s)
 		os_free(wps);
 		return -1;
 	}
-	//wps->config_methods = wps_fix_config_methods(wps->config_methods);
+	wps->config_methods = wps_fix_config_methods(wps->config_methods);
 	os_memcpy(wps->dev.pri_dev_type, wpa_s->conf->device_type,
 		  WPS_DEV_TYPE_LEN);
 
@@ -1145,7 +1145,6 @@ int wpas_wps_init(struct wpa_supplicant *wpa_s)
 		  WPS_DEV_TYPE_LEN * wps->dev.num_sec_dev_types);
 
 	wps->dev.os_version = WPA_GET_BE32(wpa_s->conf->os_version);
-	//WPS_RF_24GHZ | WPS_RF_50GHZ;
 	wps->dev.rf_bands = wpa_s->conf->rf_bands;
 
 	os_memcpy(wps->dev.mac_addr, wpa_s->own_addr, ETH_ALEN);
@@ -1667,7 +1666,7 @@ void wpas_wps_update_config(struct wpa_supplicant *wpa_s)
 			wps->config_methods &= ~WPS_CONFIG_LABEL;
 		}
 	}
-	//wps->config_methods = wps_fix_config_methods(wps->config_methods);
+	wps->config_methods = wps_fix_config_methods(wps->config_methods);
 
 	if (wpa_s->conf->changed_parameters & CFG_CHANGED_DEVICE_TYPE)
 		os_memcpy(wps->dev.pri_dev_type, wpa_s->conf->device_type,
