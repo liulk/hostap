@@ -751,6 +751,9 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 {
 	char *pos, *end, tmp[30];
 	int res, verbose, ret;
+	//RTK patched; we have to get passphrase when we set command status
+	struct wpa_ssid *pcur_ssid = wpa_s->current_ssid;
+	int i = 0, j = 0;
 
 	verbose = os_strcmp(params, "-VERBOSE") == 0;
 	pos = buf;
@@ -788,6 +791,63 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 				if (ret < 0 || ret >= end - pos)
 					return pos - buf;
 				pos += ret;
+			}
+
+			//RTK patched: Get passpharse
+			if( pcur_ssid->passphrase )
+			{
+				ret = os_snprintf(pos, end - pos, "passphrase=%s\n",
+					pcur_ssid->passphrase);
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+			}
+
+			//RTK patched: Get psk
+			if( pcur_ssid->psk_set )
+			{
+				ret = os_snprintf(pos, end - pos, "psk=");
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+
+				for(i=0;i<32;i++)
+				{
+					ret = os_snprintf(pos, end - pos, "%x",
+						pcur_ssid->psk[i]);
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+				}
+				ret = os_snprintf(pos, end - pos, "\n");
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+			}
+
+			//RTK patched: Get wep key
+			for(i=0;i<NUM_WEP_KEYS;i++)
+			{
+				if( pcur_ssid->wep_key_len[i] > 0 )
+				{
+					ret = os_snprintf(pos, end - pos, "wep_key%d=", i);
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+
+					for(j=0;j<pcur_ssid->wep_key_len[i];j++)
+					{
+						ret = os_snprintf(pos, end - pos, "%02x",
+							pcur_ssid->wep_key[i][j]);
+						if (ret < 0 || ret >= end - pos)
+							return pos - buf;
+						pos += ret;
+					}
+					ret = os_snprintf(pos, end - pos, "\n");
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+				}
 			}
 
 			switch (ssid->mode) {
@@ -871,8 +931,15 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 	res = rsn_preauth_get_status(wpa_s->wpa, pos, end - pos, verbose);
 	if (res >= 0)
 		pos += res;
-
-	return pos - buf;
+		
+	/*	Aries 20120120, append rssi infomation at the end of "status" command 	*/	
+	struct wpa_signal_info si;
+	os_memset(tmp, 0, 30);
+	if (!wpa_drv_signal_poll(wpa_s, &si)) {
+		os_snprintf(tmp, 18, "signal_level=%d\n", si.current_signal);
+		strcat(buf, tmp);
+	}
+	return pos - buf + os_strlen(tmp);
 }
 
 
@@ -2870,6 +2937,26 @@ static int wpa_supplicant_ctrl_iface_sta_autoconnect(
 }
 
 
+static int wpa_supplicant_signal_poll(struct wpa_supplicant *wpa_s, char *buf,
+				      size_t buflen)
+{
+	struct wpa_signal_info si;
+	int ret;
+
+	ret = wpa_drv_signal_poll(wpa_s, &si);
+	if (ret)
+		return -1;
+
+	ret = os_snprintf(buf, buflen, "RSSI=%d\nLINKSPEED=%d\n"
+			  "NOISE=%d\nFREQUENCY=%u\n",
+			  si.current_signal, si.current_txrate / 1000,
+			  si.current_noise, si.frequency);
+	if (ret < 0 || (unsigned int) ret > buflen)
+		return -1;
+	return ret;
+}
+
+
 char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 					 char *buf, size_t *resp_len)
 {
@@ -3163,8 +3250,17 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpa_s->wpa_state == WPA_INTERFACE_DISABLED)
 			reply_len = -1;
 		else {
-			wpa_s->scan_req = 2;
-			wpa_supplicant_req_scan(wpa_s, 0, 0);
+			if (!wpa_s->scanning &&
+			    ((wpa_s->wpa_state <= WPA_SCANNING) ||
+			     (wpa_s->wpa_state == WPA_COMPLETED))) {
+				wpa_s->scan_req = 2;
+				wpa_supplicant_req_scan(wpa_s, 0, 0);
+			} else {
+				wpa_printf(MSG_DEBUG, "Ongoing scan action - "
+					   "reject new request");
+				reply_len = os_snprintf(reply, reply_size,
+							"FAIL-BUSY\n");
+			}
 		}
 	} else if (os_strcmp(buf, "SCAN_RESULTS") == 0) {
 		reply_len = wpa_supplicant_ctrl_iface_scan_results(
@@ -3253,6 +3349,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 		if (wpa_supplicant_ctrl_iface_tdls_teardown(wpa_s, buf + 14))
 			reply_len = -1;
 #endif /* CONFIG_TDLS */
+	} else if (os_strncmp(buf, "SIGNAL_POLL", 11) == 0) {
+		reply_len = wpa_supplicant_signal_poll(wpa_s, reply,
+						       reply_size);
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
 		reply_len = 16;

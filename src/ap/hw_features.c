@@ -473,7 +473,10 @@ static int ieee80211n_check_40mhz(struct hostapd_iface *iface)
 	if (hostapd_driver_scan(iface->bss[0], &params) < 0) {
 		wpa_printf(MSG_ERROR, "Failed to request a scan of "
 			   "neighboring BSSes");
-		return -1;
+
+		//DRIVER_RTW Modify
+		//return -1;		
+		return 0;//ignore this error 
 	}
 
 	iface->scan_cb = ieee80211n_check_scan;
