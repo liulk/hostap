@@ -250,7 +250,8 @@ static void wpa_cli_msg_cb(char *msg, size_t len)
 
 static int _wpa_ctrl_command(struct wpa_ctrl *ctrl, char *cmd, int print)
 {
-	char buf[2048];
+	//Modified by Kurt; enlarge command string for scan_result
+	char buf[4096];
 	size_t len;
 	int ret;
 
@@ -2293,6 +2294,13 @@ static int wpa_cli_cmd_tdls_teardown(struct wpa_ctrl *ctrl, int argc,
 }
 
 
+static int wpa_cli_cmd_signal_poll(struct wpa_ctrl *ctrl, int argc,
+				   char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "SIGNAL_POLL");
+}
+
+
 enum wpa_cli_cmd_flags {
 	cli_cmd_flag_none		= 0x00,
 	cli_cmd_flag_sensitive		= 0x01
@@ -2608,6 +2616,9 @@ static struct wpa_cli_cmd wpa_cli_commands[] = {
 	{ "tdls_teardown", wpa_cli_cmd_tdls_teardown,
 	  cli_cmd_flag_none,
 	  "<addr> = tear down TDLS with <addr>" },
+	{ "signal_poll", wpa_cli_cmd_signal_poll,
+	  cli_cmd_flag_none,
+	  "= get signal parameters" },
 	{ NULL, NULL, cli_cmd_flag_none, NULL }
 };
 

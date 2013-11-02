@@ -478,6 +478,11 @@ void ieee802_11_set_beacon(struct hostapd_data *hapd)
 #ifdef CONFIG_IEEE80211N
 	tailpos = hostapd_eid_ht_capabilities(hapd, tailpos);
 	tailpos = hostapd_eid_ht_operation(hapd, tailpos);
+
+	//DRIVER_RTW ADD
+	if(hapd->iconf->ieee80211n)
+		hapd->conf->wmm_enabled = 1;
+	
 #endif /* CONFIG_IEEE80211N */
 
 	tailpos = hostapd_eid_ext_capab(hapd, tailpos);

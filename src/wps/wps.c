@@ -282,6 +282,11 @@ int wps_is_addr_authorized(const struct wpabuf *msg, const u8 *addr,
 	if (wps_parse_msg(msg, &attr) < 0)
 		return 0;
 
+	return is_selected_pin_registrar(&attr);
+//	Marked by Albert 2011/11/17
+//	Some APs won't carry the AuthorizedMACs in the probe response.
+//	So, skip this check will speed up the process to find the current AP out for WPS handshake.
+#if 0
 	if (!attr.version2 && ver1_compat) {
 		/*
 		 * Version 1.0 AP - AuthorizedMACs not used, so revert back to
@@ -302,6 +307,7 @@ int wps_is_addr_authorized(const struct wpabuf *msg, const u8 *addr,
 	}
 
 	return 0;
+#endif
 }
 
 
