@@ -398,7 +398,11 @@ static int wpa_supplicant_wps_cred(void *ctx,
 			return -1;
 		}
 	}
-
+	
+	//sync 0.6.9 to fix DIR615 issue by Baron
+	if(ssid->pairwise_cipher&WPA_CIPHER_CCMP)
+		ssid->pairwise_cipher = (WPA_CIPHER_CCMP|WPA_CIPHER_TKIP);	
+	
 	wpas_wps_security_workaround(wpa_s, ssid, cred);
 
 #ifndef CONFIG_NO_CONFIG_WRITE
@@ -446,6 +450,8 @@ static void wpa_supplicant_wps_event_m2d(struct wpa_supplicant *wpa_s,
 #endif /* CONFIG_P2P */
 }
 
+/* RTK patched */
+extern void inform_driver_wps_state( void *priv, u32 u32wps_state );
 
 static const char * wps_event_fail_reason[NUM_WPS_EI_VALUES] = {
 	"No Error", /* WPS_EI_NO_ERROR */
@@ -482,6 +488,9 @@ static void wpa_supplicant_wps_event_fail(struct wpa_supplicant *wpa_s,
 #ifdef CONFIG_P2P
 	wpas_p2p_wps_failed(wpa_s, fail);
 #endif /* CONFIG_P2P */
+
+	/* RTK patched */
+	inform_driver_wps_state( wpa_s->drv_priv, 3 );
 }
 
 
@@ -493,6 +502,9 @@ static void wpa_supplicant_wps_event_success(struct wpa_supplicant *wpa_s)
 #ifdef CONFIG_P2P
 	wpas_p2p_wps_success(wpa_s, wpa_s->bssid, 0);
 #endif /* CONFIG_P2P */
+
+	/* RTK patched */
+       inform_driver_wps_state( wpa_s->drv_priv, 2);
 }
 
 
@@ -723,6 +735,9 @@ static void wpas_wps_timeout(void *eloop_ctx, void *timeout_ctx)
 	wpa_msg(wpa_s, MSG_INFO, WPS_EVENT_TIMEOUT "Requested operation timed "
 		"out");
 	wpas_clear_wps(wpa_s);
+
+	/* RTK patched */
+	inform_driver_wps_state( wpa_s->drv_priv, 3 );
 }
 
 
@@ -855,6 +870,8 @@ int wpas_wps_start_pbc(struct wpa_supplicant *wpa_s, const u8 *bssid,
 		ssid->eap.fragment_size = wpa_s->wps_fragment_size;
 	eloop_register_timeout(WPS_PBC_WALK_TIME, 0, wpas_wps_timeout,
 			       wpa_s, NULL);
+	/* RTK patched */
+	inform_driver_wps_state( wpa_s->drv_priv, 1 );
 	wpas_wps_reassoc(wpa_s, ssid);
 	return 0;
 }
@@ -898,6 +915,8 @@ int wpas_wps_start_pin(struct wpa_supplicant *wpa_s, const u8 *bssid,
 		ssid->eap.fragment_size = wpa_s->wps_fragment_size;
 	eloop_register_timeout(WPS_PBC_WALK_TIME, 0, wpas_wps_timeout,
 			       wpa_s, NULL);
+	/* RTK patched */
+	inform_driver_wps_state( wpa_s->drv_priv, 1 );
 	wpas_wps_reassoc(wpa_s, ssid);
 	return rpin;
 }
@@ -1163,7 +1182,8 @@ int wpas_wps_init(struct wpa_supplicant *wpa_s)
 		  WPS_DEV_TYPE_LEN * wps->dev.num_sec_dev_types);
 
 	wps->dev.os_version = WPA_GET_BE32(wpa_s->conf->os_version);
-	modes = wpa_s->hw.modes;
+#if 0
+        modes = wpa_s->hw.modes;
 	if (modes) {
 		for (m = 0; m < wpa_s->hw.num_modes; m++) {
 			if (modes[m].mode == HOSTAPD_MODE_IEEE80211B ||
@@ -1180,6 +1200,9 @@ int wpas_wps_init(struct wpa_supplicant *wpa_s)
 		 */
 		wps->dev.rf_bands = WPS_RF_24GHZ | WPS_RF_50GHZ;
 	}
+#endif
+	wps->dev.rf_bands = wpa_s->conf->rf_bands;
+
 	os_memcpy(wps->dev.mac_addr, wpa_s->own_addr, ETH_ALEN);
 	wpas_wps_set_uuid(wpa_s, wps);
 
