@@ -1282,6 +1282,9 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 {
 	char *pos, *end, tmp[30];
 	int res, verbose, wps, ret;
+	//RTK patched; we have to get passphrase when we set command status
+	struct wpa_ssid *pcur_ssid = wpa_s->current_ssid;
+	int i = 0, j = 0;
 
 	verbose = os_strcmp(params, "-VERBOSE") == 0;
 	wps = os_strcmp(params, "-WPS") == 0;
@@ -1331,6 +1334,63 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 				if (ret < 0 || ret >= end - pos)
 					return pos - buf;
 				pos += ret;
+			}
+
+			//RTK patched: Get passpharse
+			if( pcur_ssid->passphrase )
+			{
+				ret = os_snprintf(pos, end - pos, "passphrase=%s\n",
+					pcur_ssid->passphrase);
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+			}
+
+			//RTK patched: Get psk
+			if( pcur_ssid->psk_set )
+			{
+				ret = os_snprintf(pos, end - pos, "psk=");
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+
+				for(i=0;i<32;i++)
+				{
+					ret = os_snprintf(pos, end - pos, "%x",
+						pcur_ssid->psk[i]);
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+				}
+				ret = os_snprintf(pos, end - pos, "\n");
+				if (ret < 0 || ret >= end - pos)
+					return pos - buf;
+				pos += ret;
+			}
+
+			//RTK patched: Get wep key
+			for(i=0;i<NUM_WEP_KEYS;i++)
+			{
+				if( pcur_ssid->wep_key_len[i] > 0 )
+				{
+					ret = os_snprintf(pos, end - pos, "wep_key%d=", i);
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+
+					for(j=0;j<pcur_ssid->wep_key_len[i];j++)
+					{
+						ret = os_snprintf(pos, end - pos, "%02x",
+							pcur_ssid->wep_key[i][j]);
+						if (ret < 0 || ret >= end - pos)
+							return pos - buf;
+						pos += ret;
+					}
+					ret = os_snprintf(pos, end - pos, "\n");
+					if (ret < 0 || ret >= end - pos)
+						return pos - buf;
+					pos += ret;
+				}
 			}
 
 			switch (ssid->mode) {
@@ -1465,8 +1525,15 @@ static int wpa_supplicant_ctrl_iface_status(struct wpa_supplicant *wpa_s,
 	res = rsn_preauth_get_status(wpa_s->wpa, pos, end - pos, verbose);
 	if (res >= 0)
 		pos += res;
-
-	return pos - buf;
+		
+	/*	Aries 20120120, append rssi infomation at the end of "status" command 	*/	
+	struct wpa_signal_info si;
+	os_memset(tmp, 0, 30);
+	if (!wpa_drv_signal_poll(wpa_s, &si)) {
+		os_snprintf(tmp, 18, "signal_level=%d\n", si.current_signal);
+		strcat(buf, tmp);
+	}
+	return pos - buf + os_strlen(tmp);
 }
 
 

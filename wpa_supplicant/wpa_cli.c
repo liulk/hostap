@@ -400,7 +400,8 @@ static void wpa_cli_msg_cb(char *msg, size_t len)
 
 static int _wpa_ctrl_command(struct wpa_ctrl *ctrl, char *cmd, int print)
 {
-	char buf[2048];
+	//Modified by Kurt; enlarge command string for scan_result
+	char buf[4096];
 	size_t len;
 	int ret;
 
@@ -2262,6 +2263,13 @@ static int wpa_cli_cmd_raw(struct wpa_ctrl *ctrl, int argc, char *argv[])
 	if (argc == 0)
 		return -1;
 	return wpa_cli_cmd(ctrl, argv[0], 0, argc - 1, &argv[1]);
+}
+
+
+static int wpa_cli_cmd_signal_poll(struct wpa_ctrl *ctrl, int argc,
+				   char *argv[])
+{
+	return wpa_ctrl_command(ctrl, "SIGNAL_POLL");
 }
 
 
