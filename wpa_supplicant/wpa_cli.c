@@ -2266,13 +2266,6 @@ static int wpa_cli_cmd_raw(struct wpa_ctrl *ctrl, int argc, char *argv[])
 }
 
 
-static int wpa_cli_cmd_signal_poll(struct wpa_ctrl *ctrl, int argc,
-				   char *argv[])
-{
-	return wpa_ctrl_command(ctrl, "SIGNAL_POLL");
-}
-
-
 enum wpa_cli_cmd_flags {
 	cli_cmd_flag_none		= 0x00,
 	cli_cmd_flag_sensitive		= 0x01
