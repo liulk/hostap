@@ -22,7 +22,8 @@
 
 #include "common.h"
 
-#include "wireless_copy.h"
+#define _LINUX_IF_H
+#include <linux/wireless.h>
 
 #include "driver.h"
 #include "eloop.h"
@@ -51,7 +52,6 @@
 #else /* USE_KERNEL_HEADERS */
 #include <net/if_arp.h>
 #include <netpacket/packet.h>
-//#include "wireless_copy.h"
 #endif /* USE_KERNEL_HEADERS */
 
 //#include <net/if.h>
