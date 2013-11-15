@@ -1,3 +1,10 @@
+wpa (1.0-3+rtw.r7475.20130812) UNRELEASED; urgency=low
+
+  * Non-maintainer upload.
+  * https://github.com/liulk/hostap/tree/rtw_r7475/hostap_1_0.debian
+
+ -- Likai Liu <liulk@likai.org>  Fri, 15 Nov 2013 05:49:02 +0000
+
 wpa (1.0-3) unstable; urgency=high
 
   * ship forgotten README-P2P.
