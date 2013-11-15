@@ -1520,12 +1520,10 @@ static int rtl871x_set_acl(struct rtl871x_driver_data *drv)
 	return -1;
 }
 
-//static int rtl871x_set_beacon_ops(const char *iface, void *priv,
-//			   u8 *head, size_t head_len,
-//			   u8 *tail, size_t tail_len)
-static int rtl871x_set_beacon_ops(void *priv, const u8 *head, size_t head_len,
-			  const u8 *tail, size_t tail_len, int dtim_period,
-			  int beacon_int)
+//static int rtl871x_set_beacon_ops(void *priv, const u8 *head, size_t head_len,
+//			   const u8 *tail, size_t tail_len, int dtim_period,
+//			   int beacon_int)
+static int rtl871x_set_ap_ops(void *priv, struct wpa_driver_ap_params *params)
 {
 	int ret;
 	size_t sz;
@@ -1533,12 +1531,12 @@ static int rtl871x_set_beacon_ops(void *priv, const u8 *head, size_t head_len,
 	struct rtl871x_driver_data *drv = priv;
 	struct hostapd_data *hapd = drv->hapd;
 	
-	if((head_len<24) ||(!head))
+	if((params->head_len<24) ||(!params->head))
 		return -1;
 
 	printf("%s\n", __func__);
 
-	sz = head_len+tail_len+12-24 + 2;// 12+2 = cmd+sta_addr+reserved, sizeof(ieee_param)=64, no packed
+	sz = params->head_len+params->tail_len+12-24 + 2;// 12+2 = cmd+sta_addr+reserved, sizeof(ieee_param)=64, no packed
 	pparam = os_zalloc(sz);
 	if (pparam == NULL) {
 		return -ENOMEM;
@@ -1548,9 +1546,9 @@ static int rtl871x_set_beacon_ops(void *priv, const u8 *head, size_t head_len,
 
 	os_memcpy(pparam->u.bcn_ie.reserved, &hapd->conf->max_num_sta, 2);//for set max_num_sta
 
-	os_memcpy(pparam->u.bcn_ie.buf, (head+24), (head_len-24));// 24=beacon header len.
+	os_memcpy(pparam->u.bcn_ie.buf, (params->head+24), (params->head_len-24));// 24=beacon header len.
 
-	os_memcpy(&pparam->u.bcn_ie.buf[head_len-24], tail, tail_len);
+	os_memcpy(&pparam->u.bcn_ie.buf[params->head_len-24], params->tail, params->tail_len);
 	
 	ret = rtl871x_hostapd_ioctl(drv, pparam, sz);
 
@@ -2148,7 +2146,7 @@ const struct wpa_driver_ops wpa_driver_rtw_ops = {
 	//.sta_add = rtl871x_sta_add_ops,
 	//.sta_add2 = rtl871x_sta_add2_ops,
 	.sta_remove = rtl871x_sta_remove_ops,
-	.set_beacon = rtl871x_set_beacon_ops,
+	.set_ap = rtl871x_set_ap_ops,
 	//.set_encryption = rtl871x_set_encryption_ops,
 	.set_key = rtl871x_set_key_ops,
 	.sta_deauth = rtl871x_sta_deauth_ops,
